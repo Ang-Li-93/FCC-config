@@ -1,0 +1,77 @@
+# whizard v3.0.3
+#
+# wzp6_ee_inclusive_ecm91p2 : e+e- -> Z/gamma* -> all VISIBLE charged fermions
+#   (no neutrinos, no e+e- Bhabha) at sqrt(s) = 91.2 GeV, with ISR + beam-energy
+#   spread, showered/hadronized by PYTHIA6 (the FCC "wzp6" chain).
+#
+# Final states summed (full gamma*/Z amplitude, NO ~Z restriction -- matches the
+# standard FCC per-flavor Z@91 cards):
+#     quarks  u,d,s,c,b   (hadronic Z, dominates wrapper occupancy)
+#     leptons mu, tau     (clean s-channel)
+# Excluded on purpose for a BARREL TRACKING study:
+#     neutrinos  -> leave no detector hits
+#     e+e- (ee)  -> dominated by forward t-channel Bhabha that escapes down the
+#                   beampipe (misses the barrel) and is divergent without a cut.
+# Because there is no ee final state, there is NO t-channel pole, hence NO cut
+# is needed and the full gamma*/Z amplitude is kept (realistic; Z-dominated at 91.2).
+#
+# EventProducer (--typestdhep wzp6) TEMPLATE: do NOT set n_events/seed here;
+# EventProducer prepends them and runs `whizard card.sin` -> proc.stdhep.
+# Based on the per-flavor wzp6_ee_dd_ecm91p2.sin card (same beams/ISR/BES/tune).
+
+model = SM
+
+# Center of mass energy
+sqrts = 91.2 GeV
+
+# Inclusive visible Z (no neutrinos): q qbar (5 flavors) + mu mu + tau tau + ee.
+# The ee channel is restricted to the s-channel Z via "1+2 ~ Z" (1,2 = incoming
+# e-,e+), which removes the divergent forward t-channel Bhabha -> finite, no
+# angular cut needed. The trailing { } block attaches only to the ee component,
+# so q qbar / mu mu / tau tau keep the full neutral-current amplitude.
+# NOTE: sindarin has no line-continuation char -- keep the process on one line.
+process proc = e1, E1 => (u,U) + (d,D) + (s,S) + (c,C) + (b,B) + (e2,E2) + (e3,E3) + (e1,E1) { $restrictions = "1+2 ~ Z" }
+
+beams = e1, E1 => gaussian => isr
+?keep_beams  = true
+?keep_remnants = true
+
+! beams = e1, E1 => gaussian
+gaussian_spread1 = 0.132%
+gaussian_spread2 = 0.132%
+
+
+?isr_handler       = true
+$isr_handler_mode = "recoil"
+isr_alpha          = 0.0072993
+isr_mass           = 0.000511
+
+
+! Parton shower and hadronization
+?ps_fsr_active          = true
+?ps_isr_active          = false
+?hadronization_active   = true
+$shower_method          = "PYTHIA6"
+!?ps_PYTHIA_verbose     = true
+
+
+$ps_PYTHIA_PYGIVE = "MSTJ(28)=0; PMAS(25,1)=125.; PMAS(25,2)=0.4143E-02; MSTJ(41)=1; MSTU(22)=2000; PARJ(21)=0.40000; PARJ(41)=0.11000; PARJ(42)=0.52000; PARJ(81)=0.25000; PARJ(82)=1.90000; MSTJ(11)=3; PARJ(54)=-0.03100; PARJ(55)=-0.00200; PARJ(1)=0.08500; PARJ(3)=0.45000; PARJ(4)=0.02500; PARJ(2)=0.31000; PARJ(11)=0.60000; PARJ(12)=0.40000; PARJ(13)=0.72000; PARJ(14)=0.43000; PARJ(15)=0.08000; PARJ(16)=0.08000; PARJ(17)=0.17000; MSTP(3)=1;MSTP(71)=1; MSTP(151)=0; PARP(151)=5.96e-3 ; PARP(152)=23.8E-6; PARP(153)=0.397; PARP(154)=10.89"
+# BNL_MAPS full-sim: MSTJ(41)=1 (QCD shower only, QED photon emission OFF) so final
+# leptons don't carry FSR-photon daughters -> Geant4-clean record (avoids ddsim's
+# "stable particle with daughters" FATAL on leptonic events). Negligible for a
+# vertex study (FSR photons -> ECAL only; leptons very slightly harder, not softer).
+# BNL_MAPS: MSTP(151)=0 disables Pythia6 vertex smearing. With it ON (=1) ddsim hits
+# DD4hep's "stable particle with daughters" FATAL (issue #1094) on leptonic-FSR records.
+# Apply vertex smearing in ddsim (SIM.vertexSigma) if needed. PARP(151-154) keep the
+# FCC-ee luminous-region sizes (sigma x,y,z,t) for reference.
+
+
+
+integrate (proc) { iterations = 10:100000:"gw", 5:200000:"" }
+
+# n_events should be passed by the EventProducer
+# n_events = 100000
+
+sample_format =  stdhep
+$extension_stdhep = "stdhep"
+simulate (proc) {checkpoint = 100}
