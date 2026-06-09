@@ -24,7 +24,7 @@
 ########################################################################
 
 # Using custom 2HDM UFO to access off-diagonal H->q_i qbar_j decays
-model = THDM_QFV(ufo("/eos/experiment/fcc/ee/generation/FCC-config/winter2023/FCCee/Generator/UFO"))
+model = THDM_QFV(ufo("/gpfs/mnt/gpfs01/usfcc/ali3/FCCWorkplace/FCC-config/winter2023/FCCee/Generator/UFO"))
 
 # Center of mass energy
 sqrts = 240 GeV
